@@ -68,6 +68,7 @@ class OctolapsePlugin(octoprint.plugin.SettingsPlugin,
         self.Settings = None  # type: OctolapseSettings
         self.Timelapse = None  # type: Timelapse
         self.IsRenderingSynchronized = False
+        self.SSIM = []
 
     # Blueprint Plugin Mixin Requests
 
@@ -1081,6 +1082,9 @@ class OctolapsePlugin(octoprint.plugin.SettingsPlugin,
         	(score, diff) = compare_ssim(grayA, grayB, full=True)
         	diff = (diff * 255).astype("uint8")
         	self._logger.info("SSIM: {}".format(score))
+        	self.SSIM.append(score)
+        	if len(self.SSIM) > 3:
+        		self._logger.info("SSIM std dev.: {}".format(np.std(self.SSIM)))
         	err = np.sum((grayA.astype("float") - grayB.astype("float")) ** 2)
         	err /= float(grayA.shape[0] * grayA.shape[1])
         	self._logger.info("MSE: {}".format(err))
