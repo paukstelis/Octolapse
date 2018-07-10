@@ -1080,10 +1080,10 @@ class OctolapsePlugin(octoprint.plugin.SettingsPlugin,
         	grayB = cv2.cvtColor(imageB, cv2.COLOR_BGR2GRAY)
         	(score, diff) = compare_ssim(grayA, grayB, full=True)
         	diff = (diff * 255).astype("uint8")
-        	self._logger.info(("SSIM: {}".format(score))
+        	self._logger.info("SSIM: {}".format(score))
         	err = np.sum((grayA.astype("float") - grayB.astype("float")) ** 2)
         	err /= float(grayA.shape[0] * grayA.shape[1])
-        	self._logger.info(("MSE: {}".format(err))
+        	self._logger.info("MSE: {}".format(err))
         
 
     def on_apply_camera_settings_success(self, *args, **kwargs):
