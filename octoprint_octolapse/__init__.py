@@ -29,6 +29,11 @@ import os
 import shutil
 from distutils.version import LooseVersion
 
+from skimage.measure import compare_ssim
+import imutils
+import cv2
+import numpy as np
+
 import flask
 import octoprint.plugin
 import octoprint.server
@@ -1048,6 +1053,7 @@ class OctolapsePlugin(octoprint.plugin.SettingsPlugin,
         status_dict = self.get_status_dict()
         success = payload["success"]
         error = payload["error"]
+  
         data = {
             "type": "snapshot-complete", "msg": "Octolapse has completed the current snapshot.", "Status": status_dict,
             "MainSettings": self.Settings.get_main_settings_dict(), 'success': success, 'error': error
@@ -1056,6 +1062,29 @@ class OctolapsePlugin(octoprint.plugin.SettingsPlugin,
         state_data = self.Timelapse.to_state_dict()
         data.update(state_data)
         self._plugin_manager.send_plugin_message(self._identifier, data)
+        #put this all in a thread that will wait for the current snapshot to be downloaded
+        #Just taking the two previous snapshots for testing purposes
+        snapshot_path = utility.get_snapshot_temp_directory(self.Timelapse.DataFolder)
+        filename = utility.get_currently_printing_filename(self._printer)
+        starttime = self.Timelapse.PrintStartTime 
+        current_snap = utility.get_snapshot_filename(filename, starttime, self.Timelapse.SnapshotCount-1)
+        prev_snap = utility.get_snapshot_filename(filename, starttime, self.Timelapse.SnapshotCount-2)
+        current_snap_path = ("{0}{1}".format(snapshot_path,current_snap))
+        previous_snap_path = ("{0}{1}".format(snapshot_path,prev_snap))
+        self._logger.info(current_snap_path)
+        self._logger.info(previous_snap_path)
+        if self.Timelapse.SnapshotCount > 4:
+        	imageA = cv2.imread(current_snap_path)
+        	imageB = cv2.imread(previous_snap_path)
+        	grayA = cv2.cvtColor(imageA, cv2.COLOR_BGR2GRAY)
+        	grayB = cv2.cvtColor(imageB, cv2.COLOR_BGR2GRAY)
+        	(score, diff) = compare_ssim(grayA, grayB, full=True)
+        	diff = (diff * 255).astype("uint8")
+        	self._logger.info(("SSIM: {}".format(score))
+        	err = np.sum((grayA.astype("float") - grayB.astype("float")) ** 2)
+        	err /= float(grayA.shape[0] * grayA.shape[1])
+        	self._logger.info(("MSE: {}".format(err))
+        
 
     def on_apply_camera_settings_success(self, *args, **kwargs):
         setting_value = args[0]
