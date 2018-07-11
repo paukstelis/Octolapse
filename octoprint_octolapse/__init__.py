@@ -1079,10 +1079,15 @@ class OctolapsePlugin(octoprint.plugin.SettingsPlugin,
         	imageB = cv2.imread(previous_snap_path)
         	grayA = cv2.cvtColor(imageA, cv2.COLOR_BGR2GRAY)
         	grayB = cv2.cvtColor(imageB, cv2.COLOR_BGR2GRAY)
+        	edgeA = cv2.Canny(grayA,100,200)
+        	edgeB = cv2.Canny(grayB,100,200)
         	(score, diff) = compare_ssim(grayA, grayB, full=True)
         	diff = (diff * 255).astype("uint8")
         	self._logger.info("SSIM: {}".format(score))
         	self.SSIM.append(score)
+        	(score, diff) = compare_ssim(edgeA, edgeB, full=True)
+        	self._logger.info("SSIM EDGE: {}".format(score))
+        	
         	if len(self.SSIM) > 3:
         		self._logger.info("SSIM std dev.: {}".format(np.std(self.SSIM)))
         	err = np.sum((grayA.astype("float") - grayB.astype("float")) ** 2)
