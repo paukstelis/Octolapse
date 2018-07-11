@@ -69,6 +69,8 @@ class OctolapsePlugin(octoprint.plugin.SettingsPlugin,
         self.Timelapse = None  # type: Timelapse
         self.IsRenderingSynchronized = False
         self.SSIM = []
+        self.previousSSIM = None
+        self.currentSSIM = None
 
     # Blueprint Plugin Mixin Requests
 
@@ -662,6 +664,10 @@ class OctolapsePlugin(octoprint.plugin.SettingsPlugin,
 
             self.create_timelapse_object()
             self.Settings.current_debug_profile().log_info("Octolapse - loaded and active.")
+            self.SSIM = []
+            self.previousSSIM = None
+            self.currentSSIM = None
+
         except Exception as e:
             if self.Settings is not None:
                 self.Settings.current_debug_profile().log_exception(e)
@@ -1075,25 +1081,28 @@ class OctolapsePlugin(octoprint.plugin.SettingsPlugin,
         self._logger.info(current_snap_path)
         self._logger.info(previous_snap_path)
         if self.Timelapse.SnapshotCount > 4:
+        	#Don't have to load both. Store one inthe future
         	imageA = cv2.imread(current_snap_path)
         	imageB = cv2.imread(previous_snap_path)
         	grayA = cv2.cvtColor(imageA, cv2.COLOR_BGR2GRAY)
         	grayB = cv2.cvtColor(imageB, cv2.COLOR_BGR2GRAY)
-        	edgeA = cv2.Canny(grayA,100,200)
-        	edgeB = cv2.Canny(grayB,100,200)
         	(score, diff) = compare_ssim(grayA, grayB, full=True)
         	diff = (diff * 255).astype("uint8")
         	self._logger.info("SSIM: {}".format(score))
-        	self.SSIM.append(score)
-        	(score, diff) = compare_ssim(edgeA, edgeB, full=True)
-        	self._logger.info("SSIM EDGE: {}".format(score))
         	
-        	if len(self.SSIM) > 3:
-        		self._logger.info("SSIM std dev.: {}".format(np.std(self.SSIM)))
+         	if len(self.SSIM) > 3:
+         		mean = np.mean(self.SSIM)
+         		stddev = np.std(self.SSIM)
+         		self._logger.info("SSIM mean.: {}".format(mean))
+        		self._logger.info("SSIM std dev.: {}".format(stdev))
+        		if abs(score - mean) > 3*stddev:
+        			self._logger.info("Greater than 3 STDDEV from mean!")
+        		
+        	self.SSIM.append(score)	
         	#err = np.sum((grayA.astype("float") - grayB.astype("float")) ** 2)
         	#err /= float(grayA.shape[0] * grayA.shape[1])
         	#self._logger.info("MSE: {}".format(err))
-        
+        	       
 
     def on_apply_camera_settings_success(self, *args, **kwargs):
         setting_value = args[0]
