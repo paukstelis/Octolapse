@@ -1087,15 +1087,13 @@ class OctolapsePlugin(octoprint.plugin.SettingsPlugin,
         	grayA = cv2.cvtColor(imageA, cv2.COLOR_BGR2GRAY)
         	grayB = cv2.cvtColor(imageB, cv2.COLOR_BGR2GRAY)
         	(score, diff) = compare_ssim(grayA, grayB, full=True)
-        	diff = (diff * 255).astype("uint8")
         	self._logger.info("SSIM: {}".format(score))
-        	self._logger.info("DIFF: {}".format(diff))
         	
          	if len(self.SSIM) > 3:
          		mean = np.mean(self.SSIM)
          		stddev = np.std(self.SSIM)
-         		self._logger.info("SSIM mean: {}".format(mean))
-        		self._logger.info("SSIM stddev: {}".format(stdev))
+         		self._logger.info("SSIM mean: {0}".format(np.mean(self.SSIM)))
+        		self._logger.info("SSIM stddev: {0}".format(stddev))
         		if abs(score - mean) > 3*stddev:
         			self._logger.info("Greater than 3 STDDEV from mean!")
         		
