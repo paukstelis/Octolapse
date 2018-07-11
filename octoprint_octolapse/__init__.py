@@ -1080,6 +1080,7 @@ class OctolapsePlugin(octoprint.plugin.SettingsPlugin,
         previous_snap_path = ("{0}{1}".format(snapshot_path,prev_snap))
         self._logger.info(current_snap_path)
         self._logger.info(previous_snap_path)
+        addSS = True
         if self.Timelapse.SnapshotCount > 4:
         	#Don't have to load both. Store one inthe future
         	imageA = cv2.imread(current_snap_path)
@@ -1096,8 +1097,9 @@ class OctolapsePlugin(octoprint.plugin.SettingsPlugin,
         		self._logger.info("SSIM stddev: {0}".format(stddev))
         		if abs(score - mean) > 3*stddev:
         			self._logger.info("Greater than 3 STDDEV from mean!")
-        		
-        self.SSIM.append(score)	
+        			addSS = False
+        if addSS:
+        	self.SSIM.append(score)	
         	       
 
     def on_apply_camera_settings_success(self, *args, **kwargs):
