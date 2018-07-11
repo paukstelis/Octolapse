@@ -1095,7 +1095,8 @@ class OctolapsePlugin(octoprint.plugin.SettingsPlugin,
          		stddev = np.std(self.SSIM)
          		self._logger.info("SSIM mean: {0}".format(np.mean(self.SSIM)))
         		self._logger.info("SSIM stddev: {0}".format(stddev))
-        		if abs(score - mean) > 3*stddev:
+        		self._logger.info("Std. diff: {}".format(abs(score-mean)/stddev))
+        		if abs(score - mean) > 3*stddev:       			
         			self._logger.info("Greater than 3 STDDEV from mean!")
         			addSS = False
         if addSS:
