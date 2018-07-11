@@ -1090,9 +1090,9 @@ class OctolapsePlugin(octoprint.plugin.SettingsPlugin,
         	
         	if len(self.SSIM) > 3:
         		self._logger.info("SSIM std dev.: {}".format(np.std(self.SSIM)))
-        	err = np.sum((grayA.astype("float") - grayB.astype("float")) ** 2)
-        	err /= float(grayA.shape[0] * grayA.shape[1])
-        	self._logger.info("MSE: {}".format(err))
+        	#err = np.sum((grayA.astype("float") - grayB.astype("float")) ** 2)
+        	#err /= float(grayA.shape[0] * grayA.shape[1])
+        	#self._logger.info("MSE: {}".format(err))
         
 
     def on_apply_camera_settings_success(self, *args, **kwargs):
