@@ -1069,8 +1069,12 @@ class OctolapsePlugin(octoprint.plugin.SettingsPlugin,
         state_data = self.Timelapse.to_state_dict()
         data.update(state_data)
         self._plugin_manager.send_plugin_message(self._identifier, data)
-        #put this all in a thread that will wait for the current snapshot to be downloaded
-        #Just taking the two previous snapshots for testing purposes
+        
+        #TODO: This is only for testing purposes
+        #Put this all in a helper class with a thread
+        #It will make sure the current snapshot is downloaded
+        #Settings will determine thresholds
+        
         snapshot_path = utility.get_snapshot_temp_directory(self.Timelapse.DataFolder)
         filename = utility.get_currently_printing_filename(self._printer)
         starttime = self.Timelapse.PrintStartTime 
@@ -1089,15 +1093,19 @@ class OctolapsePlugin(octoprint.plugin.SettingsPlugin,
         	grayB = cv2.cvtColor(imageB, cv2.COLOR_BGR2GRAY)
         	(score, diff) = compare_ssim(grayA, grayB, full=True)
         	self._logger.info("SSIM: {}".format(score))
-        	
+        	#No sense getting means to SD till we have enough readings
          	if len(self.SSIM) > 3:
          		mean = np.mean(self.SSIM)
          		stddev = np.std(self.SSIM)
-         		self._logger.info("SSIM mean: {0}".format(np.mean(self.SSIM)))
-        		self._logger.info("SSIM stddev: {0}".format(stddev))
-        		self._logger.info("Std. diff: {}".format(abs(score-mean)/stddev))
-        		if abs(score - mean) > 3*stddev:       			
-        			self._logger.info("Greater than 3 STDDEV from mean!")
+         		from_mean = abs(score - mean)
+         		self._logger.info("SSIM mean: {0:.2f}".format(mean))
+        		self._logger.info("SSIM SD: {0:.2f}".format(stddev))
+        		self._logger.info("SD from mean: {0:.2f}".format(abs(score-mean)/stddev))
+        		if from_mean > 10*stddev:
+        			self._logger.info("Greater than 10 standard deviations from mean. Probably a bad image")
+        			addSS = False
+        		if from_mean < 10*stddev and from_mean > 3*stddev:       			
+        			self._logger.info("Greater than 3 standard deviations from mean. Notify")
         			addSS = False
         if addSS:
         	self.SSIM.append(score)	
