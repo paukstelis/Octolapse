@@ -1107,7 +1107,7 @@ class OctolapsePlugin(octoprint.plugin.SettingsPlugin,
         		if from_mean > 15:
         			self._logger.info("Greater than 15 standard deviations from mean. Probably a bad image")
         			addSS = False
-            		if from_mean < 10 and from_mean > 3:       			
+            	if from_mean < 10 and from_mean > 3:       			
         			self._logger.info("Greater than 3 standard deviations from mean. Notify")
         			self._plugin_manager.send_plugin_message(self._identifier, dict(type="compare-notify",frommean="{0:.3f}".format(from_mean),image=current_snap_path))
         			addSS = False
