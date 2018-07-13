@@ -1074,10 +1074,10 @@ class OctolapsePlugin(octoprint.plugin.SettingsPlugin,
         #Put this all in a helper class with a thread
         #It will make sure the current snapshot is downloaded
         #Settings will determine thresholds
-        
         snapshot_path = utility.get_snapshot_temp_directory(self.Timelapse.DataFolder)
         filename = utility.get_currently_printing_filename(self._printer)
-        starttime = self.Timelapse.PrintStartTime 
+        starttime = self.Timelapse.PrintStartTime
+        #When done for real, only need to load the newest image and store previous
         current_snap = utility.get_snapshot_filename(filename, starttime, self.Timelapse.SnapshotCount-1)
         prev_snap = utility.get_snapshot_filename(filename, starttime, self.Timelapse.SnapshotCount-2)
         current_snap_path = ("{0}{1}".format(snapshot_path,current_snap))
@@ -1085,8 +1085,9 @@ class OctolapsePlugin(octoprint.plugin.SettingsPlugin,
         self._logger.info(current_snap_path)
         self._logger.info(previous_snap_path)
         addSS = True
-        if self.Timelapse.SnapshotCount > 4:
+        if self.Timelapse.SnapshotCount > 2:
         	#Don't have to load both. Store one inthe future
+        	#Don't need opencv if this is all we do, this can be done in PIL
         	imageA = cv2.imread(current_snap_path)
         	imageB = cv2.imread(previous_snap_path)
         	grayA = cv2.cvtColor(imageA, cv2.COLOR_BGR2GRAY)
@@ -1097,15 +1098,18 @@ class OctolapsePlugin(octoprint.plugin.SettingsPlugin,
          	if len(self.SSIM) > 3:
          		mean = np.mean(self.SSIM)
          		stddev = np.std(self.SSIM)
-         		from_mean = abs(score - mean)
-         		self._logger.info("SSIM mean: {0:.2f}".format(mean))
-        		self._logger.info("SSIM SD: {0:.2f}".format(stddev))
-        		self._logger.info("SD from mean: {0:.2f}".format(abs(score-mean)/stddev))
-        		if from_mean > 10*stddev:
-        			self._logger.info("Greater than 10 standard deviations from mean. Probably a bad image")
+         		diff_mean = abs(score - mean)
+         		from_mean = diff_mean/stddev
+         		self._logger.info("SSIM mean: {0:.3f}".format(mean))
+        		self._logger.info("SSIM SD: {0:.4f}".format(stddev))
+        		self._logger.info("SD from mean: {0:.3f}".format(from_mean))
+    
+        		if from_mean > 15:
+        			self._logger.info("Greater than 15 standard deviations from mean. Probably a bad image")
         			addSS = False
-        		if from_mean < 10*stddev and from_mean > 3*stddev:       			
+            		if from_mean < 10 and from_mean > 3:       			
         			self._logger.info("Greater than 3 standard deviations from mean. Notify")
+        			self._plugin_manager.send_plugin_message(self._identifier, dict(type="compare-notify",frommean="{0:.3f}".format(from_mean),image=current_snap_path))
         			addSS = False
         if addSS:
         	self.SSIM.append(score)	

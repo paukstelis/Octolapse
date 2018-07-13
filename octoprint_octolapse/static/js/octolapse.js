@@ -597,6 +597,23 @@ $(function () {
 
 
         };
+        
+        self.onCompareNotify = function(data) {
+
+            $.ajax({
+                url: API_BASEURL + "plugin/octobullet",
+                type: "POST",
+                dataType: "json",
+                data: JSON.stringify({
+                    command: "notify",
+                    frommean:data.frommean,
+                    image: data.image
+                }),
+                contentType: "application/json; charset=UTF-8",
+
+            });
+         }
+
         // Handle Plugin Messages from Server
         self.onDataUpdaterPluginMessage = function (plugin, data) {
             if (plugin !== "octolapse") {
@@ -710,6 +727,15 @@ $(function () {
                         }
                     }
                     break;
+                    
+                case "compare-notify":
+                	{
+                		
+                		self.onCompareNotify(data);
+                		
+                		
+                	}
+                	break;
                 case "render-start":
                     {
                         //console.log('octolapse.js - render-start');
