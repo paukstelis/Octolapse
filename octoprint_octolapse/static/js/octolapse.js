@@ -597,7 +597,7 @@ $(function () {
 
 
         };
-        
+        //Using octobullet for now. Probably want this user definable for any push service
         self.onCompareNotify = function(data) {
 
             $.ajax({
@@ -607,7 +607,8 @@ $(function () {
                 data: JSON.stringify({
                     command: "notify",
                     frommean:data.frommean,
-                    image: data.image
+                    image: data.image,
+                    filename: data.filename
                 }),
                 contentType: "application/json; charset=UTF-8",
 
