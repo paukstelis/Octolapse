@@ -113,7 +113,7 @@ class FrameCompare(object):
         			diffpath = "{0}difference_{1}.jpg".format(diffpath, snapcount) 
         			cv2.imwrite(diffpath, diff)
         		
-        	if comparison["added"]:
+        if comparison["added"]:
         		self.scores.append(score)
         	
 		return comparison
