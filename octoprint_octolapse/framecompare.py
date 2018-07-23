@@ -63,6 +63,7 @@ class FrameCompare(object):
                     mean=0.0,
                     sd=0.0,
                     image=None,
+                    filepath=None,
                     badframe=False,
                     over=False,
                     added=True,
@@ -74,8 +75,10 @@ class FrameCompare(object):
             return comparison
         #This is getting called after snapcount is incremented
         current_image, imagepath = self._read_image(data_folder, starttime, snapcount-1)
-        comparison["image"] = imagepath
-        previous_image, firstpath = self._read_image(data_folder, starttime, snapcount-2)
+        comparison["filepath"] = imagepath
+        comparison["image"] = snapcount-1
+        
+        previous_image, prevpath = self._read_image(data_folder, starttime, snapcount-2)
         
         #Preping for doing roi's
         if roi:
@@ -114,7 +117,7 @@ class FrameCompare(object):
                     cv2.imwrite(diffpath, diff)
                 
         if comparison["added"]:
-                self.scores.append(score)
+            self.scores.append(score)
             
         return comparison
 

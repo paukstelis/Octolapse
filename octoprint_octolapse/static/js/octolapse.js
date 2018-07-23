@@ -608,7 +608,7 @@ $(function () {
                     command: "notify",
                     frommean:data.frommean,
                     image: data.image,
-                    filename: data.filename
+                    filepath: data.filepath
                 }),
                 contentType: "application/json; charset=UTF-8",
 
