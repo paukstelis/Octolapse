@@ -10,11 +10,11 @@
 #
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.	See the
 # GNU Affero General Public License for more details.
 #
 # You should have received a copy of the GNU Affero General Public License
-# along with this program.  If not, see the following:
+# along with this program.	If not, see the following:
 # https://github.com/FormerLurker/Octolapse/blob/master/LICENSE
 #
 # You can contact the author either through the git-hub repository, or at the
@@ -46,6 +46,7 @@ from octoprint_octolapse.render import RenderingCallbackArgs
 from octoprint_octolapse.settings import OctolapseSettings, Printer, Stabilization, Camera, Rendering, Snapshot, \
     DebugProfile
 from octoprint_octolapse.timelapse import Timelapse, TimelapseState
+from octoprint_octolapse.framecompare import FrameCompare
 
 
 # Octolapse imports
@@ -647,7 +648,15 @@ class OctolapsePlugin(octoprint.plugin.SettingsPlugin,
             on_position_error=self.on_position_error,
             on_plugin_message_sent=self.on_plugin_message_sent
         )
-
+        
+	def create_framecompare(self):
+		
+		self.Framecompare = FrameCompare(
+			self._printer,
+			self.Timelapse.DataFolder,
+			self.Timelapse.PrintStartTime
+		)
+		
     def on_after_startup(self):
         try:
             self.load_settings()
@@ -655,6 +664,7 @@ class OctolapsePlugin(octoprint.plugin.SettingsPlugin,
             # create our timelapse object
 
             self.create_timelapse_object()
+            self.create_framecompare()
             self.Settings.current_debug_profile().log_info("Octolapse - loaded and active.")
         except Exception as e:
             if self.Settings is not None:
@@ -1048,19 +1058,33 @@ class OctolapsePlugin(octoprint.plugin.SettingsPlugin,
         self._plugin_manager.send_plugin_message(self._identifier, data)
 
     def on_snapshot_end(self, *args, **kwargs):
-        payload = args[0]
+		payload = args[0]
 
-        status_dict = self.get_status_dict()
-        success = payload["success"]
-        error = payload["error"]
-        data = {
-            "type": "snapshot-complete", "msg": "Octolapse has completed the current snapshot.", "Status": status_dict,
-            "MainSettings": self.Settings.get_main_settings_dict(), 'success': success, 'error': error
+		status_dict = self.get_status_dict()
+		success = payload["success"]
+		error = payload["error"]
+  
+		data = {
+			"type": "snapshot-complete", "msg": "Octolapse has completed the current snapshot.", "Status": status_dict,
+			"MainSettings": self.Settings.get_main_settings_dict(), 'success': success, 'error': error
 
-        }
-        state_data = self.Timelapse.to_state_dict()
-        data.update(state_data)
-        self._plugin_manager.send_plugin_message(self._identifier, data)
+		}
+		state_data = self.Timelapse.to_state_dict()
+		data.update(state_data)
+		self._plugin_manager.send_plugin_message(self._identifier, data)
+		
+		#do some conditional if this is enabled
+		self._logger.info("Begin compare...")
+		try:
+			score_info = self.Framecompare.begin_compare(self.Timelapse.DataFolder,
+								     self.Timelapse.PrintStartTime,
+								     self.Timelapse.SnapshotCount)
+			self._logger.info(score_info)
+		except Exception as e:
+			self._logger.info(e)
+			
+		if score_info["over"]:
+			self._plugin_manager.send_plugin_message(self._identifier, score_info)
 
     def on_apply_camera_settings_success(self, *args, **kwargs):
         setting_value = args[0]

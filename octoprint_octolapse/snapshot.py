@@ -95,7 +95,8 @@ class CaptureSnapshot(object):
         path = os.path.dirname(snapshot_directory + os.sep)
         if os.path.isdir(path):
             try:
-                shutil.rmtree(path)
+                #shutil.rmtree(path)
+                print "Not cleaning"
                 self.Settings.current_debug_profile().log_snapshot_clean("Snapshots cleaned.")
             except Exception:
                 # Todo:  What exceptions do I catch here?
@@ -123,7 +124,8 @@ class CaptureSnapshot(object):
         path = os.path.dirname(snapshot_directory + os.sep)
         if os.path.isdir(path):
             try:
-                shutil.rmtree(path)
+                #shutil.rmtree(path)
+                print "Not cleaning"
                 self.Settings.current_debug_profile().log_snapshot_clean("Snapshots cleaned.")
             except:
                 # Todo:  What exceptions to catch here?
