@@ -29,10 +29,8 @@ import os
 import shutil
 from distutils.version import LooseVersion
 
-from skimage.measure import compare_ssim
-import imutils
-import cv2
-import numpy as np
+
+import traceback
 
 import flask
 import octoprint.plugin
@@ -51,6 +49,7 @@ from octoprint_octolapse.render import RenderingCallbackArgs
 from octoprint_octolapse.settings import OctolapseSettings, Printer, Stabilization, Camera, Rendering, Snapshot, \
 	DebugProfile
 from octoprint_octolapse.timelapse import Timelapse, TimelapseState
+from octoprint_octolapse.framecompare import FrameCompare
 
 
 # Octolapse imports
@@ -68,7 +67,6 @@ class OctolapsePlugin(octoprint.plugin.SettingsPlugin,
 		self.Settings = None  # type: OctolapseSettings
 		self.Timelapse = None  # type: Timelapse
 		self.IsRenderingSynchronized = False
-		self.SSIM = []
 		self.failures = 0
 
 	# Blueprint Plugin Mixin Requests
@@ -654,7 +652,13 @@ class OctolapsePlugin(octoprint.plugin.SettingsPlugin,
 			on_position_error=self.on_position_error,
 			on_plugin_message_sent=self.on_plugin_message_sent
 		)
-
+	def create_framecompare(self):
+		
+		self.Framecompare = FrameCompare(
+			self._printer,
+			self.Timelapse.DataFolder,
+			self.Timelapse.PrintStartTime
+		)
 	def on_after_startup(self):
 		try:
 			self.load_settings()
@@ -662,9 +666,8 @@ class OctolapsePlugin(octoprint.plugin.SettingsPlugin,
 			# create our timelapse object
 
 			self.create_timelapse_object()
+			self.create_framecompare()
 			self.Settings.current_debug_profile().log_info("Octolapse - loaded and active.")
-			self.previousSSIM = None
-			self.currentSSIM = None
 
 		except Exception as e:
 			if self.Settings is not None:
@@ -1070,73 +1073,25 @@ class OctolapsePlugin(octoprint.plugin.SettingsPlugin,
 		data.update(state_data)
 		self._plugin_manager.send_plugin_message(self._identifier, data)
 		
-		#TODO: This is only for testing purposes
-		#Put this all in a helper class with a thread
-		#It will make sure the current snapshot is downloaded
-		#Settings will determine thresholds
-		snapshot_path = utility.get_snapshot_temp_directory(self.Timelapse.DataFolder)
-		filename = utility.get_currently_printing_filename(self._printer)
-		starttime = self.Timelapse.PrintStartTime
-		#When done for real, only need to load the newest image and store previous
-		current_snap = utility.get_snapshot_filename(filename, starttime, self.Timelapse.SnapshotCount-1)
-		prev_snap = utility.get_snapshot_filename(filename, starttime, self.Timelapse.SnapshotCount-2)
-		current_snap_path = ("{0}{1}".format(snapshot_path,current_snap))
-		previous_snap_path = ("{0}{1}".format(snapshot_path,prev_snap))
-		self._logger.info(current_snap_path)
-		self._logger.info(previous_snap_path)
-		addSS = True
-		if self.Timelapse.SnapshotCount > 2:
-			#Don't have to load both. Store one inthe future
-			#Don't need opencv if this is all we do, this can be done in PIL
-			imageA = cv2.imread(current_snap_path)
-			imageB = cv2.imread(previous_snap_path)
-			grayA = cv2.cvtColor(imageA, cv2.COLOR_BGR2GRAY)
-			grayB = cv2.cvtColor(imageB, cv2.COLOR_BGR2GRAY)
-			(score, diff) = compare_ssim(grayA, grayB, full=True)
-			self._logger.info("SSIM: {}".format(score))
-			#No sense getting means to SD till we have enough readings
-			self._logger.info("Readings list length: {}".format(len(self.SSIM)))
-			if len(self.SSIM) > 3:
-				mean = np.mean(self.SSIM)
-				stddev = np.std(self.SSIM)
-				diff_mean = abs(score - mean)
-				from_mean = diff_mean/stddev
-				self._logger.info("SSIM mean: {0:.3f}".format(mean))
-				self._logger.info("SSIM SD: {0:.4f}".format(stddev))
-				self._logger.info("SD from mean: {0:.3f}".format(from_mean))
-	
-				if from_mean > 15:
-					self._logger.info("Greater than 15 standard deviations from mean. Probably a bad image")
-					addSS = False
-				if from_mean < 15 and from_mean > 4:				
-					self._logger.info("Greater than 4 standard deviations from mean. Notify")
-					compare_info = dict(
-							type="compare-notify",
-							frommean="{0:.3f}".format(from_mean),
-							image=current_snap_path,
-							filename=current_snap
-							)
-					self.failures += 1
-					self._plugin_manager.send_plugin_message(self._identifier, compare_info)
-					addSS = False
-			if addSS:
-				self.SSIM.append(score)
-				self._logger.info("Appending score")
-				self.failures = 0
+		#do some conditional if this is enabled
+		self._logger.info("Begin compare...")
+		try:
+			score_info = self.Framecompare.begin_compare(self.Timelapse.DataFolder,
+								     self.Timelapse.PrintStartTime,
+								     self.Timelapse.SnapshotCount)
+			self._logger.info(score_info)
+		except Exception as e:
+			self._logger.info(e)
 			
-			if self.failures > 3:
-				self.failures = 0
-				self._printer.pause_print()
-				   
+		if score_info["over"]:
+			self._plugin_manager.send_plugin_message(self._identifier, score_info)
 
 	def on_apply_camera_settings_success(self, *args, **kwargs):
 		setting_value = args[0]
 		setting_name = args[1]
 		template = args[2]
 		self.Settings.current_debug_profile().log_camera_settings_apply(
-			"Camera Settings - Successfully applied {0} to the {1} setting.	 Template:{2}".format(setting_value,
-																								  setting_name,
-																								  template))
+			"Camera Settings - Successfully applied {0} to the {1} setting.	 Template:{2}".format(setting_value, setting_name,template))
 
 	def on_apply_camera_settings_fail(self, *args, **kwargs):
 		setting_value = args[0]
