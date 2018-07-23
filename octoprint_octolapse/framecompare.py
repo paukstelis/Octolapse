@@ -102,19 +102,18 @@ class FrameCompare(object):
             comparison["frommean"] =  "{0:.3f}".format(from_mean)
             comparison["sd"] = "{0:.4f}".format(stddev)
             comparison["mean"] = "{0:.4f}".format(mean)
-
-                if from_mean >= self.sd_badframe_thresh:
-                    comparison["badframe"] = True
-                    comparison["added"] = False
+            if from_mean >= self.sd_badframe_thresh:
+                comparison["badframe"] = True
+                comparison["added"] = False
                 
-                if from_mean < self.sd_badframe_thresh and from_mean > self.sd_over_thresh:                 
-                    comparison["over"] = True
-                    comparison["added"] = False
-                    #Write difference image so we can inspect what is happening
-                    diff = (diff * 255).astype("uint8")
-                    diffpath = utility.get_snapshot_temp_directory(data_folder)
-                    diffpath = "{0}difference_{1}.jpg".format(diffpath, snapcount) 
-                    cv2.imwrite(diffpath, diff)
+            if from_mean < self.sd_badframe_thresh and from_mean > self.sd_over_thresh:                 
+                comparison["over"] = True
+                comparison["added"] = False
+                #Write difference image so we can inspect what is happening
+                diff = (diff * 255).astype("uint8")
+                diffpath = utility.get_snapshot_temp_directory(data_folder)
+                diffpath = "{0}difference_{1}.jpg".format(diffpath, snapcount) 
+                cv2.imwrite(diffpath, diff)
                 
         if comparison["added"]:
             self.scores.append(score)
