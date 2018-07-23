@@ -649,7 +649,7 @@ class OctolapsePlugin(octoprint.plugin.SettingsPlugin,
             on_plugin_message_sent=self.on_plugin_message_sent
         )
         
-	def create_framecompare(self):
+    def create_framecompare(self):
 		
 		self.Framecompare = FrameCompare(
 			self._printer,
