@@ -21,6 +21,8 @@ class FrameCompare(object):
         self.sd_badframe_thresh = 15.0
         #The number of snaps to wait before getting/adding to statistics
         self.begin_analysis_count = 3
+        #The last number of scores to use for calculating mean/std.dev
+        self.score_count = 50
 
     def _read_image(self, data_folder, starttime, snapcount):
         printing =  utility.get_currently_printing_filename(self.OctoprintPrinter)
@@ -95,8 +97,8 @@ class FrameCompare(object):
         comparison["ssimscore"] = score
         
         if len(self.scores) > self.begin_analysis_count:
-            mean = np.mean(self.scores)
-            stddev = np.std(self.scores)
+            mean = np.mean(self.scores[self.score_count:])
+            stddev = np.std(self.scores[self.score_count:])
             diff_mean = abs(score - mean)
             from_mean = diff_mean/stddev
             comparison["frommean"] =  "{0:.3f}".format(from_mean)
