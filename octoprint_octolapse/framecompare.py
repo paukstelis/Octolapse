@@ -30,7 +30,7 @@ class FrameCompare(object):
 
         image = cv2.imread(path)
         #image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        return image, path
+        return image, path, imagefile
 
     def _to_gray(self, image):
         
@@ -74,11 +74,11 @@ class FrameCompare(object):
         if snapcount < self.start_count:
             return comparison
         #This is getting called after snapcount is incremented
-        current_image, imagepath = self._read_image(data_folder, starttime, snapcount-1)
+        current_image, imagepath, current_file = self._read_image(data_folder, starttime, snapcount-1)
         comparison["filepath"] = imagepath
-        comparison["image"] = snapcount-1
+        comparison["image"] = current_file
         
-        previous_image, prevpath = self._read_image(data_folder, starttime, snapcount-2)
+        previous_image, prevpath, prev_file = self._read_image(data_folder, starttime, snapcount-2)
         
         #Preping for doing roi's
         if roi:
@@ -106,7 +106,7 @@ class FrameCompare(object):
                 comparison["badframe"] = True
                 comparison["added"] = False
                 
-            if from_mean < self.sd_badframe_thresh and from_mean > self.sd_over_thresh:                 
+            if from_mean < self.sd_badframe_thresh and from_mean > self.sd_over_thresh and score < mean:                 
                 comparison["over"] = True
                 comparison["added"] = False
                 #Write difference image so we can inspect what is happening
